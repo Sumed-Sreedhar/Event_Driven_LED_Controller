@@ -1,102 +1,109 @@
-GPIO Status Controller (STM32)
-Overview:
+# GPIO Status Controller (STM32)
 
-This project implements a GPIO-driven status controller on the STM32F446RE using an event-driven design.
-Button inputs trigger state changes via EXTI interrupts, while a timer interrupt controls LED behavior based on the current system state.
+**Status:** Completed and hardware-validated | STM32F446RE
 
-The goal is to separate event detection from action execution, avoiding blocking delays and large conditional logic.
+---
 
-Hardware Used:
+## What It Does
+A **state-based GPIO controller** demonstrating event-driven embedded design using **external interrupts (EXTI)** and **timer interrupts**.
 
-STM32F446RE (Nucleo)
+- Button inputs trigger **state transitions**
+- LED behavior is driven **exclusively by a timer ISR**
+- No blocking delays, no polling loops
+- Single point of output control for deterministic behavior
 
-Push button(s)
+This project was built to move beyond naïve polling-based designs and understand how real embedded systems react to events.
 
-LED(s)
+---
 
-On-board debugger (ST-Link)
+## System Architecture
+- **MCU:** STM32F446RE (Nucleo)
+- **Inputs:** Push button(s) via GPIO + EXTI
+- **Outputs:** LED(s)
+- **Timing:** Hardware timer interrupt
+- **Debug:** On-board ST-Link
 
-Core Concepts Demonstrated:
+---
 
-GPIO input/output configuration
+## Operating Modes
+The system operates in four distinct modes:
 
-External interrupts (EXTI)
+- **OFF** — LED permanently off  
+- **ON** — LED permanently on  
+- **SLOW BLINK** — LED toggles at a fixed slow interval  
+- **FAST BLINK** — LED toggles at a faster interval  
 
-Timer interrupts
+### Control Flow
+- Button presses **do not** control the LED directly  
+- EXTI ISRs only update the **system state**
+- The timer ISR reads the current state and applies the correct LED behavior
 
-Event-driven state machine design
+This enforces strict separation between **event detection** and **action execution**.
 
-Interrupt Service Routine (ISR) discipline
+---
 
-Single point of hardware control
+## Key Engineering Decisions
 
-System Behavior:-
+### 1. Event-Driven Over Polling (Core Design Choice)
+**Problem:** Polling-based GPIO designs waste CPU time and scale poorly as complexity increases.
 
-The system operates in multiple modes:
+**Solution:** Used EXTI interrupts to capture button events and timers as the sole time base.
 
-OFF – LED off
+**Takeaway:** Events should modify state; time-driven logic should act on state.
 
-ON – LED on
+---
 
-Slow Blink – LED toggles at a slow rate
+### 2. Single Point of Hardware Control
+**Problem:** Driving outputs from multiple ISRs leads to race conditions and unpredictable behavior.
 
-Fast Blink – LED toggles at a faster rate
+**Solution:** All LED control is centralized in the timer ISR.
 
-Button presses do not directly control the LED.
-They only update the system state.
-The timer ISR reads the state and applies the correct LED behavior.
+**Takeaway:** Each peripheral should have a clear owner to ensure deterministic execution.
 
-This ensures:
+---
 
-Clean separation of responsibilities
+### 3. Minimal ISR Design
+**Problem:** Heavy logic inside ISRs causes latency and hard-to-debug issues.
 
-Predictable timing behavior
+**Solution:** EXTI callbacks only update state variables; no delays, no GPIO writes.
 
-Scalable logic without nested if/else blocks
+**Takeaway:** ISRs should be short, predictable, and side-effect–limited.
 
-Design Intent:-
+---
 
-This project was intentionally designed to:
+## What I Learned
+- Why EXTI ISRs must be minimal and non-blocking  
+- How timers act as **time bases**, not delay mechanisms  
+- How state machines simplify embedded logic  
+- The importance of peripheral ownership  
+- How to structure STM32 HAL projects cleanly  
 
-Avoid polling-based delays
+---
 
-Prevent logic duplication across ISRs
+## Limitations
+- No automatic mode timeout  
+- Debouncing handled simplistically  
+- Designed for clarity, not feature density  
 
-Model how real embedded systems react to events rather than loops
+These limitations were intentional and addressed in follow-up projects.
 
-The LED is controlled from one place only, enforcing deterministic behavior.
+---
 
-What I Learned:
+## If I Extended This Project
+1. Add **mode timeout logic** (automatic state decay)  
+2. Implement **timer-based debouncing**  
+3. Support multiple outputs with shared state logic  
+4. Reimplement using **register-level (bare-metal) code**  
 
-Why EXTI ISRs should be minimal and non-blocking
+---
 
-How timers act as time bases, not delays
+## Tools & Environment
+- STM32CubeIDE  
+- STM32 HAL  
+- Linux development environment  
+- Git & GitHub for version control  
 
-How state machines simplify embedded logic
+---
 
-The importance of ownership over peripherals
-
-How to structure HAL-based projects cleanly
-
-Possible Improvements:
-
-Add mode timeout logic (automatic state decay)
-
-Add debouncing using timer-based validation
-
-Extend to multiple LEDs or outputs
-
-Convert to bare-metal (register-level) implementation
-
-Tools & Environment:
-
-STM32CubeIDE
-
-STM32 HAL
-
-Linux (development environment)
-
-Git & GitHub for version control
-
-Status:
-Completed and functional on hardware.
+## Status
+Completed and tested on hardware.
